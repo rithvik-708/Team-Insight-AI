@@ -1,0 +1,6 @@
+node_modules/
+static/dashboard/build/
+coverage/
+.forge/
+*.log
+.env

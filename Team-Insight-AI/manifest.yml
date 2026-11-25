@@ -1,0 +1,11 @@
+modules:
+  jira:actionValidator:
+    - key: team-insight-ai-workitem-type-validator
+      action: workItemTypeChanged
+      expression: issue.key=="HSP-1" && newIssueType=="1"
+app:
+  runtime:
+    name: nodejs24.x
+    memoryMB: 256
+    architecture: arm64
+  id: ari:cloud:ecosystem::app/2c19a9aa-a10e-4754-a4a0-71a44d064e81

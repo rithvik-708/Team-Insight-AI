@@ -1,0 +1,41 @@
+{
+  "name": "teamwork-insight",
+  "version": "1.0.0",
+  "description": "Teamwork Insight — an organizational context assistant for Jira built on Atlassian Forge, Rovo and Teamwork Graph.",
+  "license": "MIT",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "build:ui": "npm --prefix static/dashboard run build",
+    "install:ui": "npm --prefix static/dashboard install",
+    "lint": "eslint . && npm --prefix static/dashboard run lint",
+    "lint:forge": "forge lint",
+    "typecheck": "tsc --noEmit && npm --prefix static/dashboard run typecheck",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"static/dashboard/src/**/*.{ts,tsx,css}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"static/dashboard/src/**/*.{ts,tsx,css}\"",
+    "validate": "npm run typecheck && npm run lint && npm test && npm run build:ui && npm run validate:manifest",
+    "deploy": "npm run build:ui && forge deploy",
+    "validate:manifest": "node scripts/validate-manifest.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@forge/api": "^8.5.0",
+    "@forge/resolver": "^2.0.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.19.2",
+    "eslint": "^9.39.5",
+    "globals": "^17.14.0",
+    "jest": "^30.5.2",
+    "prettier": "^3.10.1",
+    "ts-jest": "^29.4.15",
+    "typescript": "~5.9",
+    "typescript-eslint": "^8.72.2"
+  }
+}

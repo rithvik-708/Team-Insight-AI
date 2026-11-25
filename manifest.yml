@@ -1,0 +1,222 @@
+modules:
+  rovo:agent:
+    - key: context-guide
+      name: Teamwork Insight Context Guide
+      description: >-
+        Answers questions about your work, your team's workload, who is involved
+        in an issue, related and blocked work, and relevant documentation, using
+        live Jira and Teamwork Graph data.
+      icon: resource:dashboard;icon.svg
+      prompt: resource:agent-prompts;context-guide.txt
+      conversationStarters:
+        - What am I working on?
+        - What is my team working on?
+        - Who is involved in this issue?
+        - Which issues are blocked?
+        - What are the related issues for this feature?
+        - What should I focus on next?
+      followUpPrompt: >-
+        Suggest up to two short follow-up questions the user could ask next
+        about the same work, team, issue or documents, based only on data
+        already shown in the conversation.
+      actions:
+        - get-my-work
+        - get-team-workload
+        - get-issue-people
+        - find-related-work
+        - find-blocked-work
+        - find-related-docs
+
+  action:
+    - key: get-my-work
+      name: Get my work summary
+      function: my-work-summary-fn
+      actionVerb: GET
+      description: >-
+        Returns the current user's open assigned Jira work items (Teamwork Graph
+        + Jira), sorted by urgency, with totals and a suggested-focus list. Use
+        for what am I working on, overdue work, and what to focus on next.
+      inputs:
+        includeDone:
+          title: Include done
+          type: boolean
+          required: false
+          description: Set to true only if the user explicitly asks to include completed
+            issues.
+        limit:
+          title: Limit
+          type: integer
+          required: false
+          description: Maximum number of issues to return (1-25, default 10).
+        projectKey:
+          title: Project key
+          type: string
+          required: false
+          description: Restrict results to one Jira project key, e.g. MKT. Omit unless the
+            user names a project.
+
+    - key: get-team-workload
+      name: Get team workload
+      function: team-workload-fn
+      actionVerb: GET
+      description: >-
+        Finds the user's team via Teamwork Graph, lists members and aggregates
+        their open Jira issues (counts, statuses, high load, top priorities).
+        Use projectKey for a project view. May ask the user to pick a team.
+      inputs:
+        teamName:
+          title: Team name
+          type: string
+          required: false
+          description: Name of the team if the user mentions one. Omit to use the user's
+            only team.
+        teamId:
+          title: Team ID
+          type: string
+          required: false
+          description: Team ARI or ID from a previous needs_team_selection result.
+        projectKey:
+          title: Project key
+          type: string
+          required: false
+          description: Jira project key for a project-level workload view instead of a
+            team view.
+
+    - key: get-issue-people
+      name: Get people involved in an issue
+      function: issue-people-fn
+      actionVerb: GET
+      description: >-
+        Returns who is involved in a Jira issue: assignee (owner), reporter,
+        commenters, watchers if visible, teams linked to the project, and
+        suggested contacts with reasons. Use for who owns or who to contact.
+      inputs:
+        issueKey:
+          title: Issue key
+          type: string
+          required: false
+          description: Jira issue key such as MKT-21. Optional when the user is viewing an
+            issue.
+
+    - key: find-related-work
+      name: Find related work and dependencies
+      function: related-work-fn
+      actionVerb: GET
+      description: >-
+        Returns work related to a Jira issue: parent, children and sub-tasks,
+        linked issues, blockers (is blocked by), blocked issues (blocks) and
+        remote links. Use for dependencies and is this blocked.
+      inputs:
+        issueKey:
+          title: Issue key
+          type: string
+          required: false
+          description: Jira issue key such as MKT-21. Optional when the user is viewing an
+            issue.
+
+    - key: find-blocked-work
+      name: Find blocked work
+      function: blocked-work-fn
+      actionVerb: GET
+      description: >-
+        Lists open issues with unresolved 'is blocked by' links, either the
+        user's assigned issues or all issues in a given project, including each
+        blocker's status.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: false
+          description: Jira project key to scan. Omit to scan the user's own assigned
+            issues.
+
+    - key: find-related-docs
+      name: Find related documentation
+      function: related-docs-fn
+      actionVerb: GET
+      description: >-
+        Finds documentation for an issue or topic: documents linked from the
+        Jira issue plus Confluence pages matching the issue summary or a search
+        phrase. Search matches are labelled as such.
+      inputs:
+        issueKey:
+          title: Issue key
+          type: string
+          required: false
+          description: Jira issue key such as MKT-21. Optional when the user is viewing an
+            issue.
+        query:
+          title: Search phrase
+          type: string
+          required: false
+          description: A short topic to search Confluence for, e.g. "landing page design".
+
+  rovo:mcp:
+    - key: teamwork-insight-mcp
+      name: Teamwork Insight
+      tools:
+        - get-my-work
+        - get-team-workload
+        - get-issue-people
+        - find-related-work
+        - find-blocked-work
+        - find-related-docs
+
+  jira:globalPage:
+    - key: teamwork-insight-page
+      resource: dashboard
+      resolver:
+        function: resolver-fn
+      title: Teamwork Insight
+      layout: native
+
+  jira:issueContext:
+    - key: teamwork-insight-issue-context
+      resource: dashboard
+      resolver:
+        function: resolver-fn
+      title: Teamwork Insight
+      label: People & related work
+
+  function:
+    - key: resolver-fn
+      handler: index.resolver
+    - key: my-work-summary-fn
+      handler: index.myWorkSummary
+    - key: team-workload-fn
+      handler: index.teamWorkload
+    - key: issue-people-fn
+      handler: index.issuePeople
+    - key: related-work-fn
+      handler: index.relatedWork
+    - key: blocked-work-fn
+      handler: index.blockedWork
+    - key: related-docs-fn
+      handler: index.relatedDocs
+
+resources:
+  - key: dashboard
+    path: static/dashboard/build
+  - key: agent-prompts
+    path: prompts
+
+permissions:
+  scopes:
+    # Jira REST (all calls run asUser)
+    - read:jira-work
+    - read:jira-user
+    # Confluence CQL search (optional feature; works when the app is also installed in Confluence)
+    - search:confluence
+    # Teamwork Graph: one scope per object type traversed by the curated queries we call
+    - read:graph:user:atlassian
+    - read:graph:team:atlassian
+    - read:graph:issue:jira
+    - read:graph:issue-status:jira
+    - read:graph:issue-comment:jira
+    - read:graph:project:jira
+
+app:
+  runtime:
+    name: nodejs24.x
+    memoryMB: 256
+  id: ari:cloud:ecosystem::app/0cc28e27-d0ab-4a62-b8ad-692f4e14e555
